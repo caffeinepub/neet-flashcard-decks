@@ -1,0 +1,126 @@
+/**
+ * Built-in deck: Simple Harmonic Motion (NEET Physics)
+ * 12 high-yield NCERT cards with NEET traps and NCERT hooks.
+ */
+
+import type { BuiltinDeck } from "./reproductiveHealth";
+
+export const shmDeck: BuiltinDeck = {
+  id: "builtin-shm",
+  name: "SHM",
+  description:
+    "12 high-yield NCERT cards covering acceleration, frequency, energy, spring-mass systems, and simple pendulum in SHM — with NEET traps and NCERT hooks on every card.",
+  isBuiltin: true,
+  section: "Physics",
+  cards: [
+    {
+      id: 1,
+      cardType: "Definition",
+      title: "SHM Condition",
+      front:
+        "What is the defining acceleration condition for Simple Harmonic Motion (SHM)?",
+      back: "a = −ω²x",
+      trap: "Acceleration is directly proportional to displacement but always acts in the OPPOSITE direction (towards the mean position).",
+      hook: "Restoring Nature of SHM",
+    },
+    {
+      id: 2,
+      cardType: "Formula",
+      title: "Angular Frequency",
+      front: "Formula for Angular Frequency (ω) in terms of Time Period (T).",
+      back: "ω = 2π / T",
+      trap: "Commonly confused: ω is angular frequency (rad/s), while f is linear frequency (Hz). ω = 2πf.",
+      hook: "Circular Motion Analogy",
+    },
+    {
+      id: 3,
+      cardType: "Formula",
+      title: "Spring-Mass Time Period",
+      front: "Calculate the Time Period (T) for a spring-mass system.",
+      back: "T = 2π√(m / k)",
+      trap: "NEET Trap: For a spring-mass system, T is independent of acceleration due to gravity (g). It behaves the same on Moon vs Earth.",
+      hook: "Inertia vs Elasticity",
+    },
+    {
+      id: 4,
+      cardType: "Formula",
+      title: "Displacement in SHM",
+      front: "State the general equation for Displacement (x) in SHM.",
+      back: "x = A sin(ωt + φ)",
+      trap: "φ (phi) is the initial phase. If motion starts from the extreme position, φ = π/2 and the equation becomes x = A cos(ωt).",
+      hook: "Phase Constant Significance",
+    },
+    {
+      id: 5,
+      cardType: "Formula",
+      title: "Velocity in SHM",
+      front: "What is the formula for Velocity (v) at any displacement x?",
+      back: "v = ω√(A² − x²)",
+      trap: "Velocity is maximum at the mean position (x=0) and zero at the extreme positions (x=A).",
+      hook: "Positional Velocity",
+    },
+    {
+      id: 6,
+      cardType: "Formula",
+      title: "Maximum Velocity",
+      front: "Formula for Maximum Velocity (v_max) in SHM.",
+      back: "v_max = ωA",
+      trap: "Occurs at the equilibrium point where kinetic energy is at its peak.",
+      hook: "Peak Velocity",
+    },
+    {
+      id: 7,
+      cardType: "Formula",
+      title: "Total Energy",
+      front: "Define Total Energy (E) of a particle in SHM.",
+      back: "E = ½ kA² = ½ mω²A²",
+      trap: "Total energy is CONSTANT and independent of time (t) and displacement (x). It only depends on mass, frequency, and amplitude.",
+      hook: "Energy Conservation in SHM",
+    },
+    {
+      id: 8,
+      cardType: "Formula",
+      title: "Kinetic Energy",
+      front: "Formula for Kinetic Energy (KE) at displacement x.",
+      back: "KE = ½ k(A² − x²)",
+      trap: "KE is zero at the extremes (x=A) and maximum at the mean position (x=0).",
+      hook: "Motion Energy",
+    },
+    {
+      id: 9,
+      cardType: "Formula",
+      title: "Potential Energy",
+      front: "Formula for Potential Energy (PE) at displacement x.",
+      back: "PE = ½ kx²",
+      trap: "PE is zero at the mean position (x=0) and maximum at the extremes (x=A).",
+      hook: "Configuration Energy",
+    },
+    {
+      id: 10,
+      cardType: "Formula",
+      title: "Simple Pendulum",
+      front: "What is the Time Period (T) of a Simple Pendulum?",
+      back: "T = 2π√(L / g)",
+      trap: "NEET Trap: T is independent of the mass of the bob. If a hollow bob is filled with sand that leaks, the center of mass changes, affecting L and thus T.",
+      hook: "Length-Gravity Relation",
+    },
+    {
+      id: 11,
+      cardType: "Formula",
+      title: "Acceleration in SHM",
+      front: "Identify the formula for Acceleration (a) in SHM.",
+      back: "a = −ω²x",
+      trap: "Acceleration is maximum at extremes (x=A) and ZERO at the mean position (x=0).",
+      hook: "Max Acceleration = ω²A",
+    },
+    {
+      id: 12,
+      cardType: "Formula",
+      title: "Frequency and Time Period",
+      front: "Relation between Frequency (f) and Time Period (T).",
+      back: "f = 1 / T",
+      trap: "Frequency represents oscillations per second. Unit: Hertz (Hz) or s⁻¹.",
+      hook: "Inverse Reciprocal",
+    },
+  ],
+};

@@ -73,6 +73,11 @@
     --input: 0.87 0.02 85;
     --ring: 0.36 0.1 168;
 
+    /* Section accent colors */
+    --section-bio: 0.52 0.15 168;
+    --section-phys: 0.46 0.16 250;
+    --section-chem: 0.58 0.18 45;
+
     /* NEET Trap color: coral rose */
     --trap: 0.62 0.18 15;
     --trap-bg: 0.96 0.04 15;

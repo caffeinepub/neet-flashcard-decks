@@ -2,17 +2,18 @@ import {
   AlertCircle,
   BookOpen,
   Check,
+  ChevronDown,
   Code2,
   GraduationCap,
   Loader2,
   Lock,
   Pencil,
-  Plus,
   Trash2,
   Upload,
   WifiOff,
   X,
 } from "lucide-react";
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Deck } from "../backend.d";
 import type { BuiltinDeck } from "../decks/reproductiveHealth";
@@ -538,6 +539,108 @@ function PasteCodeModal({
   );
 }
 
+// ── Section constants ────────────────────────────────────────
+
+const SECTIONS = ["Biology", "Physics", "Chemistry"] as const;
+type Section = (typeof SECTIONS)[number];
+
+const getDeckSection = (deck: MergedDeck): Section => {
+  const section = (deck as BuiltinDeck).section;
+  if (section === "Biology" || section === "Physics" || section === "Chemistry")
+    return section;
+  return "Biology";
+};
+
+// ── Section Group ────────────────────────────────────────────
+
+interface SectionGroupProps {
+  title: Section;
+  deckCount: number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function SectionGroup({
+  title,
+  deckCount,
+  defaultOpen = false,
+  children,
+}: SectionGroupProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const sectionAccentMap: Record<Section, string> = {
+    Biology: "var(--section-bio)",
+    Physics: "var(--section-phys)",
+    Chemistry: "var(--section-chem)",
+  };
+  const accent = sectionAccentMap[title];
+
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden">
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-card hover:bg-secondary/50 transition-colors text-left group"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Colored dot */}
+          <span
+            className="w-2.5 h-2.5 rounded-full shrink-0"
+            style={{ background: `oklch(${accent})` }}
+          />
+          <span className="font-bold text-foreground text-sm tracking-tight">
+            {title}
+          </span>
+          {/* Deck count badge */}
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0"
+            style={{
+              background: `oklch(${accent} / 0.12)`,
+              color: `oklch(${accent})`,
+            }}
+          >
+            {deckCount === 0
+              ? "empty"
+              : `${deckCount} deck${deckCount !== 1 ? "s" : ""}`}
+          </span>
+        </div>
+        <ChevronDown
+          size={16}
+          className="text-muted-foreground transition-transform duration-200 shrink-0"
+          style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
+        />
+      </button>
+
+      {/* Divider */}
+      <div
+        className="h-px"
+        style={{
+          background: open ? `oklch(${accent} / 0.15)` : "transparent",
+          transition: "background 0.2s",
+        }}
+      />
+
+      {/* Body */}
+      {open && (
+        <div className="p-4 bg-background">
+          {deckCount === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <BookOpen size={22} className="opacity-30" />
+              <p className="text-xs font-medium">No decks yet</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+              {children}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main DeckList ────────────────────────────────────────────
 
 export function DeckList({ onOpenDeck }: DeckListProps) {
@@ -711,81 +814,59 @@ export function DeckList({ onOpenDeck }: DeckListProps) {
         )}
 
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
             {(["sk-1", "sk-2", "sk-3"] as const).map((sk) => (
               <div
                 key={sk}
                 className="rounded-2xl border border-border bg-card animate-pulse"
-                style={{ height: 192 }}
+                style={{ height: 64 }}
               />
             ))}
-          </div>
-        ) : allDecks.length === 0 ? (
-          <div className="text-center py-20">
-            <div
-              className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ background: "oklch(var(--primary) / 0.1)" }}
-            >
-              <BookOpen size={28} style={{ color: "oklch(var(--primary))" }} />
-            </div>
-            <h2 className="text-lg font-bold text-foreground mb-2">
-              No decks yet
-            </h2>
-            <p className="text-muted-foreground text-sm mb-6">
-              Import a JSON / CSV file, or paste deck code to get started.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-                onClick={() => {
-                  const fileInput =
-                    document.querySelector<HTMLInputElement>(
-                      'input[type="file"]',
-                    );
-                  fileInput?.click();
-                }}
-              >
-                <Upload size={16} />
-                Upload File
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{
-                  background: "oklch(var(--primary) / 0.08)",
-                  color: "oklch(var(--primary))",
-                  border: "1.5px solid oklch(var(--primary) / 0.2)",
-                }}
-                onClick={() => setShowPasteModal(true)}
-              >
-                <Code2 size={16} />
-                Paste Code
-              </button>
-            </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
-            {allDecks.map((deck) => (
-              <DeckCard
-                key={deck.id}
-                deck={deck}
-                onOpen={() => onOpenDeck(deck)}
-                onDelete={
-                  !(deck as BuiltinDeck).isBuiltin
-                    ? () => setDeleteTarget(deck.id)
-                    : undefined
-                }
-                onRename={
-                  !(deck as BuiltinDeck).isBuiltin
-                    ? (newName) => handleRename(deck.id, newName)
-                    : undefined
-                }
-                isDeleting={deleteDeck.isPending && deleteTarget === deck.id}
-                isRenaming={renamingId === deck.id}
-              />
-            ))}
-          </div>
+          (() => {
+            const decksBySection = Object.fromEntries(
+              SECTIONS.map((s) => [
+                s,
+                allDecks.filter((d) => getDeckSection(d) === s),
+              ]),
+            ) as Record<Section, MergedDeck[]>;
+
+            return (
+              <div className="space-y-3">
+                {SECTIONS.map((section) => (
+                  <SectionGroup
+                    key={section}
+                    title={section}
+                    deckCount={decksBySection[section].length}
+                    defaultOpen={section === "Biology"}
+                  >
+                    {decksBySection[section].map((deck) => (
+                      <DeckCard
+                        key={deck.id}
+                        deck={deck}
+                        onOpen={() => onOpenDeck(deck)}
+                        onDelete={
+                          !(deck as BuiltinDeck).isBuiltin
+                            ? () => setDeleteTarget(deck.id)
+                            : undefined
+                        }
+                        onRename={
+                          !(deck as BuiltinDeck).isBuiltin
+                            ? (newName) => handleRename(deck.id, newName)
+                            : undefined
+                        }
+                        isDeleting={
+                          deleteDeck.isPending && deleteTarget === deck.id
+                        }
+                        isRenaming={renamingId === deck.id}
+                      />
+                    ))}
+                  </SectionGroup>
+                ))}
+              </div>
+            );
+          })()
         )}
       </main>
 

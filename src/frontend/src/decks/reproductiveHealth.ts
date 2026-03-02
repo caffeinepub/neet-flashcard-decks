@@ -18,6 +18,7 @@ export interface BuiltinDeck {
   name: string;
   description: string;
   isBuiltin: true;
+  section: "Biology" | "Physics" | "Chemistry";
   cards: BuiltinCard[];
 }
 
@@ -27,6 +28,7 @@ export const reproductiveHealthDeck: BuiltinDeck = {
   description:
     "109 high-yield NCERT concepts with NEET traps and hooks — covering contraception, STIs, ARTs, and more.",
   isBuiltin: true,
+  section: "Biology",
   cards: [
     {
       id: 1,
@@ -1012,5 +1014,24 @@ export const reproductiveHealthDeck: BuiltinDeck = {
   ],
 };
 
+import { animalKingdomDeck } from "./animalKingdom";
+import { biomoleculesDeck } from "./biomolecules";
+import { electrostaticsDeck } from "./electrostatics";
+import { endocrineDeck } from "./endocrine";
+import { gravitationDeck } from "./gravitation";
+import { lawsOfMotionDeck } from "./lawsOfMotion";
+import { microbesHumanWelfareDeck } from "./microbesHumanWelfare";
+import { shmDeck } from "./shm";
+
 /** All built-in decks — extend this array to add more */
-export const BUILTIN_DECKS: BuiltinDeck[] = [reproductiveHealthDeck];
+export const BUILTIN_DECKS: BuiltinDeck[] = [
+  reproductiveHealthDeck,
+  microbesHumanWelfareDeck,
+  biomoleculesDeck,
+  animalKingdomDeck,
+  endocrineDeck,
+  lawsOfMotionDeck,
+  gravitationDeck,
+  shmDeck,
+  electrostaticsDeck,
+];

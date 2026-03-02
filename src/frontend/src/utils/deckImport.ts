@@ -23,6 +23,16 @@ export interface ParsedDeck {
 
 // ── Validation ───────────────────────────────────────────────
 
+const FRONT_ALIASES_JSON = ["front", "q", "question", "prompt", "term", "word"];
+const BACK_ALIASES_JSON = ["back", "a", "answer", "definition", "meaning"];
+
+function pickFieldJSON(c: Record<string, unknown>, aliases: string[]): unknown {
+  for (const key of aliases) {
+    if (key in c) return c[key];
+  }
+  return undefined;
+}
+
 export function validateDeck(deck: unknown): deck is ParsedDeck {
   if (!deck || typeof deck !== "object") return false;
   const d = deck as Record<string, unknown>;
@@ -32,8 +42,10 @@ export function validateDeck(deck: unknown): deck is ParsedDeck {
   for (const card of d.cards) {
     if (!card || typeof card !== "object") return false;
     const c = card as Record<string, unknown>;
-    if (typeof c.front !== "string" || !c.front.trim()) return false;
-    if (typeof c.back !== "string" || !c.back.trim()) return false;
+    const frontVal = pickFieldJSON(c, FRONT_ALIASES_JSON);
+    if (typeof frontVal !== "string" || !frontVal.trim()) return false;
+    const backVal = pickFieldJSON(c, BACK_ALIASES_JSON);
+    if (typeof backVal !== "string" || !backVal.trim()) return false;
   }
   return true;
 }
@@ -64,20 +76,45 @@ export function parseJSONDeck(content: string): ParsedDeck | Error {
   const d = deckObj as unknown as Record<string, unknown>;
   const rawCards = d.cards as Record<string, unknown>[];
 
-  const cards: ParsedCard[] = rawCards.map((c, idx) => ({
-    id: typeof c.id === "number" ? c.id : idx + 1,
-    cardType:
-      typeof c.cardType === "string"
-        ? c.cardType
-        : typeof c.type === "string"
-          ? c.type
-          : "General",
-    title: typeof c.title === "string" ? c.title : "",
-    front: c.front as string,
-    back: c.back as string,
-    trap: typeof c.trap === "string" && c.trap.trim() ? c.trap : undefined,
-    hook: typeof c.hook === "string" && c.hook.trim() ? c.hook : undefined,
-  }));
+  const TRAP_ALIASES_JSON = [
+    "trap",
+    "tip",
+    "note",
+    "warning",
+    "neetTrap",
+    "neet_trap",
+  ];
+  const HOOK_ALIASES_JSON = [
+    "hook",
+    "hint",
+    "mnemonic",
+    "ncertHook",
+    "ncert_hook",
+    "memory",
+  ];
+
+  const cards: ParsedCard[] = rawCards.map((c, idx) => {
+    const frontVal = pickFieldJSON(c, FRONT_ALIASES_JSON) as string;
+    const backVal = pickFieldJSON(c, BACK_ALIASES_JSON) as string;
+    const trapVal = pickFieldJSON(c, TRAP_ALIASES_JSON);
+    const hookVal = pickFieldJSON(c, HOOK_ALIASES_JSON);
+    return {
+      id: typeof c.id === "number" ? c.id : idx + 1,
+      cardType:
+        typeof c.cardType === "string"
+          ? c.cardType
+          : typeof c.type === "string"
+            ? c.type
+            : typeof c.category === "string"
+              ? c.category
+              : "General",
+      title: typeof c.title === "string" ? c.title : "",
+      front: frontVal,
+      back: backVal,
+      trap: typeof trapVal === "string" && trapVal.trim() ? trapVal : undefined,
+      hook: typeof hookVal === "string" && hookVal.trim() ? hookVal : undefined,
+    };
+  });
 
   return {
     id: typeof d.id === "string" ? d.id : crypto.randomUUID(),
@@ -114,26 +151,31 @@ export function parseCodeDeck(content: string): ParsedDeck | Error {
   //   (export)? (const|let|var) <name> = [
   // Excludes destructuring patterns like: const [a, b] = ...
   let arrayText = trimmed;
-  // Match: identifier (not destructuring) assigned to array literal
-  // The \w+ ensures it's a plain name (no brackets), and = \[ confirms array assignment
-  const varPattern =
-    /(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*\[([\s\S]*)/g;
-  let bestVarMatch: RegExpExecArray | null = null;
 
-  // Find the variable declaration whose value starts with '[' (array literal)
-  // Prefer 'rawData' if found, otherwise use the first match
-  for (
-    let m = varPattern.exec(trimmed);
-    m !== null;
-    m = varPattern.exec(trimmed)
-  ) {
-    if (!bestVarMatch || m[1] === "rawData") {
+  // Use matchAll with a non-global-looping approach to avoid infinite loop issues
+  // with exec on large strings. We collect all matches first.
+  const varPattern = /(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*\[/g;
+
+  type VarMatch = { name: string; startIndex: number };
+  const allVarMatches: VarMatch[] = [];
+  for (const vm of trimmed.matchAll(varPattern)) {
+    allVarMatches.push({
+      name: vm[1],
+      startIndex: vm.index + vm[0].length - 1,
+    });
+  }
+
+  // Prefer 'rawData' match, otherwise use the first match found
+  let bestVarMatch: VarMatch | null = null;
+  for (const m of allVarMatches) {
+    if (!bestVarMatch || m.name === "rawData") {
       bestVarMatch = m;
+      if (m.name === "rawData") break;
     }
   }
 
   if (bestVarMatch) {
-    const varName = bestVarMatch[1];
+    const varName = bestVarMatch.name;
     // Only use variable name for deck name if we didn't find an h1
     if (deckName === "Imported Deck") {
       deckName = varName
@@ -143,9 +185,8 @@ export function parseCodeDeck(content: string): ParsedDeck | Error {
         .trim();
       deckName = deckName.charAt(0).toUpperCase() + deckName.slice(1);
     }
-    // Reconstruct the array text starting from the '[' character
-    // bestVarMatch[2] contains everything after the opening '[', so prepend it
-    arrayText = `[${bestVarMatch[2].replace(/;$/, "").trim()}`;
+    // Slice from the '[' character of the matched variable's array
+    arrayText = trimmed.slice(bestVarMatch.startIndex);
   }
 
   // Step 3: Locate the outermost [ ... ] array literal
@@ -212,38 +253,85 @@ export function parseCodeDeck(content: string): ParsedDeck | Error {
     return new Error("The array is empty or not a valid array of objects.");
   }
 
-  // Step 4: Validate each card has at minimum front + back
+  // Step 4: Normalize field aliases and validate each card.
+  // Supported aliases:
+  //   front: q, question, prompt, term, word
+  //   back:  a, answer, definition, meaning
+  //   trap:  tip, note, warning, neetTrap, neet_trap
+  //   hook:  hint, mnemonic, ncertHook, ncert_hook, memory
+  const FRONT_ALIASES = ["front", "q", "question", "prompt", "term", "word"];
+  const BACK_ALIASES = ["back", "a", "answer", "definition", "meaning"];
+  const TRAP_ALIASES = [
+    "trap",
+    "tip",
+    "note",
+    "warning",
+    "neetTrap",
+    "neet_trap",
+  ];
+  const HOOK_ALIASES = [
+    "hook",
+    "hint",
+    "mnemonic",
+    "ncertHook",
+    "ncert_hook",
+    "memory",
+  ];
+
+  function pickField(c: Record<string, unknown>, aliases: string[]): unknown {
+    for (const key of aliases) {
+      if (key in c) return c[key];
+    }
+    return undefined;
+  }
+
   for (const item of rawArray) {
     if (!item || typeof item !== "object") {
       return new Error(
-        "Each card must be an object with at least front and back fields.",
+        "Each card must be an object with at least front/q and back/a fields.",
       );
     }
     const c = item as Record<string, unknown>;
-    if (typeof c.front !== "string" || !c.front.trim()) {
-      return new Error('Each card must have a non-empty "front" string field.');
+    const frontVal = pickField(c, FRONT_ALIASES);
+    if (typeof frontVal !== "string" || !frontVal.trim()) {
+      return new Error(
+        'Each card must have a non-empty "front" (or "q" / "question") string field.',
+      );
     }
-    if (typeof c.back !== "string" || !c.back.trim()) {
-      return new Error('Each card must have a non-empty "back" string field.');
+    const backVal = pickField(c, BACK_ALIASES);
+    if (typeof backVal !== "string" || !backVal.trim()) {
+      return new Error(
+        'Each card must have a non-empty "back" (or "a" / "answer") string field.',
+      );
     }
   }
 
-  // Step 5: Map to ParsedCard
+  // Step 5: Map to ParsedCard (using aliases for all fields)
   const cards: ParsedCard[] = (rawArray as Record<string, unknown>[]).map(
-    (c, idx) => ({
-      id: typeof c.id === "number" ? c.id : idx + 1,
-      cardType:
-        typeof c.cardType === "string"
-          ? c.cardType
-          : typeof c.type === "string"
-            ? c.type
-            : "General",
-      title: typeof c.title === "string" ? c.title : "",
-      front: c.front as string,
-      back: c.back as string,
-      trap: typeof c.trap === "string" && c.trap.trim() ? c.trap : undefined,
-      hook: typeof c.hook === "string" && c.hook.trim() ? c.hook : undefined,
-    }),
+    (c, idx) => {
+      const front = pickField(c, FRONT_ALIASES) as string;
+      const back = pickField(c, BACK_ALIASES) as string;
+      const trapVal = pickField(c, TRAP_ALIASES);
+      const hookVal = pickField(c, HOOK_ALIASES);
+      return {
+        id: typeof c.id === "number" ? c.id : idx + 1,
+        cardType:
+          typeof c.cardType === "string"
+            ? c.cardType
+            : typeof c.type === "string"
+              ? c.type
+              : typeof c.category === "string"
+                ? c.category
+                : "General",
+        title: typeof c.title === "string" ? c.title : "",
+        front,
+        back,
+        trap:
+          typeof trapVal === "string" && trapVal.trim() ? trapVal : undefined,
+        hook:
+          typeof hookVal === "string" && hookVal.trim() ? hookVal : undefined,
+      };
+    },
   );
 
   return {
@@ -290,11 +378,17 @@ export function parseCSVDeck(
   const headerLine = lines[0];
   const headers = parseCSVLine(headerLine).map((h) => h.toLowerCase().trim());
 
-  const frontIdx = headers.indexOf("front");
-  const backIdx = headers.indexOf("back");
+  const frontIdx =
+    ["front", "q", "question", "prompt", "term", "word"]
+      .map((k) => headers.indexOf(k))
+      .find((i) => i !== -1) ?? -1;
+  const backIdx =
+    ["back", "a", "answer", "definition", "meaning"]
+      .map((k) => headers.indexOf(k))
+      .find((i) => i !== -1) ?? -1;
 
   if (frontIdx === -1 || backIdx === -1) {
-    return new Error('CSV must have "front" and "back" columns.');
+    return new Error('CSV must have "front"/"q" and "back"/"a" columns.');
   }
 
   const idIdx = headers.indexOf("id");

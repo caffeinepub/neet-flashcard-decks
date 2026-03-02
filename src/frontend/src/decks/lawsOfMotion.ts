@@ -1,0 +1,146 @@
+/**
+ * Built-in deck: Laws of Motion (NEET Physics)
+ * 14 high-yield NCERT cards with NEET traps and NCERT hooks.
+ */
+
+import type { BuiltinDeck } from "./reproductiveHealth";
+
+export const lawsOfMotionDeck: BuiltinDeck = {
+  id: "builtin-laws-of-motion",
+  name: "Laws of Motion",
+  description:
+    "14 high-yield NCERT cards covering Newton's laws, friction, momentum, and pseudo force — with NEET traps and NCERT hooks on every card.",
+  isBuiltin: true,
+  section: "Physics",
+  cards: [
+    {
+      id: 1,
+      cardType: "Law",
+      title: "Newton's First Law",
+      front: "State Newton's First Law of Motion.",
+      back: "A body remains at rest or in uniform motion unless acted upon by an external force.",
+      trap: "Commonly missed: This law defines 'Inertia'. It is only valid in inertial frames of reference.",
+      hook: "Law of Inertia",
+    },
+    {
+      id: 2,
+      cardType: "Law",
+      title: "Newton's Second Law",
+      front:
+        "Newton's Second Law: What is the relation between Force, Mass, and Acceleration?",
+      back: "F = ma",
+      trap: "Strictly F = dp/dt. Use F = ma ONLY when mass is constant. If mass changes (e.g., rocket), use rate of change of momentum.",
+      hook: "Quantitative Definition of Force",
+    },
+    {
+      id: 3,
+      cardType: "Law",
+      title: "Newton's Third Law",
+      front:
+        "True or False: In Newton's Third Law, Action and Reaction act on the same body.",
+      back: "False. They act on TWO DIFFERENT bodies.",
+      trap: "NEET Trap: Because they act on different bodies, Action and Reaction NEVER cancel each other out.",
+      hook: "Equal and Opposite Pairs",
+    },
+    {
+      id: 4,
+      cardType: "Definition",
+      title: "Inertia",
+      front: "Define Inertia.",
+      back: "The resistance of a body to change its state of rest or motion.",
+      trap: "Inertia depends ONLY on mass. It does not depend on velocity or shape.",
+      hook: "Measure of Mass",
+    },
+    {
+      id: 5,
+      cardType: "Formula",
+      title: "Coefficient of Friction",
+      front: "What is the formula for the Coefficient of Friction (μ)?",
+      back: "μ = f / N",
+      trap: "μ is unitless and dimensionless. It depends only on the nature of the surfaces in contact.",
+      hook: "Surface Characteristic",
+    },
+    {
+      id: 6,
+      cardType: "Formula",
+      title: "Limiting Friction",
+      front: "Formula for Limiting Friction (f_max).",
+      back: "f_max = μ_s N",
+      trap: "Static friction is 'self-adjusting'. It only equals μ_s N at the point of impending motion.",
+      hook: "Maximum Static Friction",
+    },
+    {
+      id: 7,
+      cardType: "Formula",
+      title: "Kinetic Friction",
+      front: "What is Kinetic Friction (f_k)?",
+      back: "f_k = μ_k N",
+      trap: "μ_k is usually less than μ_s. Kinetic friction is almost independent of velocity.",
+      hook: "Friction in Motion",
+    },
+    {
+      id: 8,
+      cardType: "Definition",
+      title: "Angle of Friction",
+      front: "Define Angle of Friction (θ) in terms of μ.",
+      back: "tanθ = μ",
+      trap: "θ is the angle between the Normal force and the Resultant of Normal and Friction forces.",
+      hook: "Geometrical Friction",
+    },
+    {
+      id: 9,
+      cardType: "Law",
+      title: "Conservation of Momentum",
+      front: "Law of Conservation of Momentum formula.",
+      back: "Σp_initial = Σp_final",
+      trap: "Applicable only when Net External Force is ZERO. Internal forces cannot change system momentum.",
+      hook: "Isolated System Rule",
+    },
+    {
+      id: 10,
+      cardType: "Concept",
+      title: "Pseudo Force",
+      front: "What is a Pseudo Force and when is it used?",
+      back: "F = ma_frame (applied in opposite direction to frame acceleration).",
+      trap: "Used ONLY in Non-Inertial (accelerating) frames. It is an imaginary force to make Newton's Laws work.",
+      hook: "Non-Inertial Frame Fix",
+    },
+    {
+      id: 11,
+      cardType: "Formula",
+      title: "Impulse",
+      front: "Formula for Impulse (J) in terms of Momentum change.",
+      back: "J = Δp",
+      trap: "Impulse is a vector. For a bouncing ball, Δp = m(v - (-u)) = m(v+u). Don't forget the sign change!",
+      hook: "Area under F-t Graph",
+    },
+    {
+      id: 12,
+      cardType: "Formula",
+      title: "Momentum",
+      front: "Formula for Momentum (p).",
+      back: "p = mv",
+      trap: "If two bodies have same KE, the heavier one has more momentum (p = √2mKE).",
+      hook: "Quantity of Motion",
+    },
+    {
+      id: 13,
+      cardType: "Definition",
+      title: "Force of Friction",
+      front: "Define Force of Friction (f) in general.",
+      back: "f = μN",
+      trap: "Friction acts parallel to the surface and ALWAYS opposes relative motion (or tendency of motion).",
+      hook: "Contact Force",
+    },
+    {
+      id: 14,
+      cardType: "Formula",
+      title: "Centripetal Force",
+      front:
+        "Centripetal Force formula for a mass m moving at velocity v in radius r.",
+      back: "F = mv² / r",
+      trap: "Centripetal force is NOT an extra force in an FBD. It is provided by real forces like mg, T, or f.",
+      hook: "Radial Force",
+    },
+  ],
+};

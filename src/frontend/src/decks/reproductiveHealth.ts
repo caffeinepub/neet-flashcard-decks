@@ -1016,11 +1016,14 @@ export const reproductiveHealthDeck: BuiltinDeck = {
 
 import { animalKingdomDeck } from "./animalKingdom";
 import { biomoleculesDeck } from "./biomolecules";
+import { chemicalCoordinationDeck } from "./chemicalCoordination";
+import { discoveriesKeyConceptsDeck } from "./discoveriesKeyConcepts";
 import { electrostaticsDeck } from "./electrostatics";
 import { endocrineDeck } from "./endocrine";
 import { gravitationDeck } from "./gravitation";
 import { lawsOfMotionDeck } from "./lawsOfMotion";
 import { microbesHumanWelfareDeck } from "./microbesHumanWelfare";
+import { plantGrowthDeck } from "./plantGrowth";
 import { shmDeck } from "./shm";
 
 /** All built-in decks — extend this array to add more */
@@ -1030,6 +1033,9 @@ export const BUILTIN_DECKS: BuiltinDeck[] = [
   biomoleculesDeck,
   animalKingdomDeck,
   endocrineDeck,
+  chemicalCoordinationDeck,
+  plantGrowthDeck,
+  discoveriesKeyConceptsDeck,
   lawsOfMotionDeck,
   gravitationDeck,
   shmDeck,

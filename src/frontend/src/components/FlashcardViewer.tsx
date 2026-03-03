@@ -8,8 +8,10 @@ import {
   HelpCircle,
   Lightbulb,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Deck } from "../backend.d";
 import type { BuiltinDeck } from "../decks/reproductiveHealth";
 
@@ -46,6 +48,46 @@ export function FlashcardViewer({ deck, onBack }: FlashcardViewerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [showScore, setShowScore] = useState(false);
+
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredCards = searchQuery.trim()
+    ? cards
+        .map((card, idx) => ({ card, idx }))
+        .filter(({ card }) => {
+          const q = searchQuery.toLowerCase();
+          const front = getCardField(card, "front") ?? "";
+          const back = getCardField(card, "back") ?? "";
+          const trap = getCardField(card, "trap") ?? "";
+          const hook = getCardField(card, "hook") ?? "";
+          return (
+            front.toLowerCase().includes(q) ||
+            back.toLowerCase().includes(q) ||
+            trap.toLowerCase().includes(q) ||
+            hook.toLowerCase().includes(q)
+          );
+        })
+    : [];
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
+
+  const jumpToCard = (idx: number) => {
+    setCurrentIndex(idx);
+    setIsFlipped(false);
+    setShowTips(false);
+    closeSearch();
+  };
 
   const currentCard = cards[currentIndex];
   const trap = getCardField(currentCard, "trap");
@@ -125,22 +167,122 @@ export function FlashcardViewer({ deck, onBack }: FlashcardViewerProps) {
               {cards.length} cards
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="text-sm font-bold text-muted-foreground tabular-nums">
-              {currentIndex + 1}
-              <span className="text-border mx-1">/</span>
-              {cards.length}
-            </span>
-            <div className="w-28 h-1.5 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300 rounded-full"
-                style={{
-                  width: `${((currentIndex + 1) / cards.length) * 100}%`,
-                }}
-              />
+          <div className="flex items-center gap-3">
+            {/* Search toggle */}
+            <button
+              type="button"
+              data-ocid="search.toggle_button"
+              onClick={searchOpen ? closeSearch : openSearch}
+              aria-label={searchOpen ? "Close search" : "Search cards"}
+              className={`p-2 rounded-xl border transition-all ${
+                searchOpen
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40"
+              }`}
+            >
+              <Search size={17} />
+            </button>
+
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="text-sm font-bold text-muted-foreground tabular-nums">
+                {currentIndex + 1}
+                <span className="text-border mx-1">/</span>
+                {cards.length}
+              </span>
+              <div className="w-28 h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300 rounded-full"
+                  style={{
+                    width: `${((currentIndex + 1) / cards.length) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Search Panel */}
+        {searchOpen && (
+          <div className="mb-4 bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+            {/* Input row */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              <Search size={15} className="text-muted-foreground shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                data-ocid="search.search_input"
+                placeholder="Search cards…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 outline-none font-medium"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  data-ocid="search.close_button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Results */}
+            {searchQuery.trim() && (
+              <div>
+                {/* Result count */}
+                <div className="px-4 py-2 border-b border-border bg-secondary/40">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                    {filteredCards.length > 0
+                      ? `${filteredCards.length} result${filteredCards.length !== 1 ? "s" : ""} for "${searchQuery}"`
+                      : `No results for "${searchQuery}"`}
+                  </p>
+                </div>
+
+                {filteredCards.length === 0 ? (
+                  <div
+                    data-ocid="search.empty_state"
+                    className="px-4 py-6 text-center"
+                  >
+                    <p className="text-sm text-muted-foreground font-medium">
+                      No cards match your search.
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      Try a different keyword.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="max-h-52 overflow-y-auto divide-y divide-border">
+                    {filteredCards.map(({ card, idx }, listIdx) => {
+                      const frontText = getCardField(card, "front") ?? "";
+                      return (
+                        <li key={idx}>
+                          <button
+                            type="button"
+                            data-ocid={`search.item.${listIdx + 1}`}
+                            onClick={() => jumpToCard(idx)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/60 transition-colors group"
+                          >
+                            <span className="text-[10px] font-black text-primary/70 tabular-nums shrink-0 w-8 text-right">
+                              #{idx + 1}
+                            </span>
+                            <span className="text-sm text-foreground font-medium leading-snug truncate group-hover:text-primary transition-colors">
+                              {frontText.length > 80
+                                ? `${frontText.slice(0, 80)}…`
+                                : frontText}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Card + Score */}
         {!showScore ? (

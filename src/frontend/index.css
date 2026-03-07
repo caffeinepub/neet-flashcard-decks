@@ -50,16 +50,16 @@
     --popover: 1 0 0;
     --popover-foreground: 0.18 0.025 280;
 
-    /* Primary: Deep emerald */
-    --primary: 0.36 0.1 168;
-    --primary-foreground: 0.97 0.008 80;
+    /* Primary: Deep indigo */
+    --primary: 0.42 0.18 265;
+    --primary-foreground: 0.98 0 0;
 
-    /* Secondary: warm parchment */
-    --secondary: 0.93 0.02 85;
-    --secondary-foreground: 0.28 0.05 168;
+    /* Secondary: light slate */
+    --secondary: 0.94 0.01 265;
+    --secondary-foreground: 0.32 0.08 265;
 
-    --muted: 0.93 0.015 85;
-    --muted-foreground: 0.52 0.025 250;
+    --muted: 0.94 0.008 265;
+    --muted-foreground: 0.50 0.03 265;
 
     /* Accent: warm amber/gold */
     --accent: 0.88 0.06 75;
@@ -71,7 +71,7 @@
 
     --border: 0.87 0.02 85;
     --input: 0.87 0.02 85;
-    --ring: 0.36 0.1 168;
+    --ring: 0.42 0.18 265;
 
     /* Section accent colors */
     --section-bio: 0.52 0.15 168;
@@ -91,18 +91,18 @@
     /* Chart */
     --chart-1: 0.646 0.222 41.116;
     --chart-2: 0.6 0.118 184.704;
-    --chart-3: 0.36 0.1 168;
+    --chart-3: 0.42 0.18 265;
     --chart-4: 0.828 0.189 84.429;
     --chart-5: 0.769 0.188 70.08;
 
     /* Sidebar */
-    --sidebar: 0.22 0.04 168;
+    --sidebar: 0.18 0.08 265;
     --sidebar-foreground: 0.97 0.008 80;
     --sidebar-primary: 0.64 0.14 65;
     --sidebar-primary-foreground: 0.18 0.04 65;
-    --sidebar-accent: 0.28 0.05 168;
+    --sidebar-accent: 0.28 0.1 265;
     --sidebar-accent-foreground: 0.97 0.008 80;
-    --sidebar-border: 0.30 0.06 168;
+    --sidebar-border: 0.30 0.1 265;
     --sidebar-ring: 0.64 0.14 65;
   }
 

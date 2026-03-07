@@ -8,6 +8,7 @@ import {
   Loader2,
   Lock,
   Pencil,
+  Plus,
   Trash2,
   Upload,
   WifiOff,
@@ -25,6 +26,7 @@ import {
   useSaveDeck,
 } from "../hooks/useQueries";
 import { parseAnyDeck, parseCSVDeck } from "../utils/deckImport";
+import type { ParsedCard, ParsedDeck } from "../utils/deckImport";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -545,10 +547,22 @@ const SECTIONS = ["Biology", "Physics", "Chemistry"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const getDeckSection = (deck: MergedDeck): Section => {
-  const section = (deck as BuiltinDeck).section;
-  if (section === "Biology" || section === "Physics" || section === "Chemistry")
-    return section;
-  return "Biology";
+  const builtinSection = (deck as BuiltinDeck).section;
+  if (
+    builtinSection === "Biology" ||
+    builtinSection === "Physics" ||
+    builtinSection === "Chemistry"
+  )
+    return builtinSection;
+  // Check description-encoded section for user-created decks
+  if (
+    typeof deck.description === "string" &&
+    deck.description.startsWith("__section:")
+  ) {
+    const s = deck.description.slice("__section:".length) as Section;
+    if (SECTIONS.includes(s)) return s;
+  }
+  return "Biology"; // default
 };
 
 // ── Section Group ────────────────────────────────────────────
@@ -641,6 +655,374 @@ function SectionGroup({
   );
 }
 
+// ── Deck-to-ParsedDeck helper ────────────────────────────────
+
+function deckToParsed(deck: MergedDeck): ParsedDeck {
+  return {
+    id: deck.id,
+    name: deck.name,
+    description:
+      ((deck as unknown as Record<string, unknown>).description as string) ??
+      "",
+    cards: deck.cards.map((card, idx): ParsedCard => {
+      const c = card as unknown as Record<string, unknown>;
+      return {
+        id:
+          typeof c.id === "bigint"
+            ? Number(c.id)
+            : typeof c.id === "number"
+              ? c.id
+              : idx + 1,
+        cardType: (c.cardType as string) ?? "General",
+        title: (c.title as string) ?? "",
+        front: (c.front as string) ?? "",
+        back: (c.back as string) ?? "",
+        trap: typeof c.trap === "string" && c.trap.trim() ? c.trap : undefined,
+        hook: typeof c.hook === "string" && c.hook.trim() ? c.hook : undefined,
+      };
+    }),
+  };
+}
+
+// ── Add Card From Home Modal ──────────────────────────────────
+
+interface AddCardFromHomeModalProps {
+  allDecks: MergedDeck[];
+  saveDeck: ReturnType<typeof useSaveDeck>;
+  onClose: () => void;
+}
+
+function AddCardFromHomeModal({
+  allDecks,
+  saveDeck,
+  onClose,
+}: AddCardFromHomeModalProps) {
+  const [step, setStep] = useState<1 | 2>(1);
+  // Step 1
+  const [selectedDeckId, setSelectedDeckId] = useState<string>("__new__");
+  const [newDeckName, setNewDeckName] = useState("");
+  const [newDeckSection, setNewDeckSection] = useState<Section>("Biology");
+  const [step1Error, setStep1Error] = useState<string | null>(null);
+  // Step 2
+  const [front, setFront] = useState("");
+  const [back, setBack] = useState("");
+  const [step2Error, setStep2Error] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleNext = () => {
+    if (selectedDeckId === "__new__") {
+      if (!newDeckName.trim()) {
+        setStep1Error("Please enter a name for the new deck.");
+        return;
+      }
+    }
+    setStep1Error(null);
+    setStep(2);
+  };
+
+  const handleSubmit = async () => {
+    const trimmedFront = front.trim();
+    const trimmedBack = back.trim();
+    if (!trimmedFront) {
+      setStep2Error("Front / Question is required.");
+      return;
+    }
+    if (!trimmedBack) {
+      setStep2Error("Back / Answer is required.");
+      return;
+    }
+    setStep2Error(null);
+    setIsSubmitting(true);
+
+    try {
+      let parsedDeck: ParsedDeck;
+
+      if (selectedDeckId === "__new__") {
+        // Create a brand new deck with one card
+        const newCard: ParsedCard = {
+          id: 1,
+          cardType: "General",
+          title: "",
+          front: trimmedFront,
+          back: trimmedBack,
+        };
+        parsedDeck = {
+          id: crypto.randomUUID(),
+          name: newDeckName.trim(),
+          description: `__section:${newDeckSection}`,
+          cards: [newCard],
+        };
+      } else {
+        // Find existing deck and append card
+        const targetDeck = allDecks.find((d) => d.id === selectedDeckId);
+        if (!targetDeck) throw new Error("Deck not found.");
+        const parsed = deckToParsed(targetDeck);
+        const newCard: ParsedCard = {
+          id: parsed.cards.length + 1,
+          cardType: "General",
+          title: "",
+          front: trimmedFront,
+          back: trimmedBack,
+        };
+        parsedDeck = {
+          ...parsed,
+          cards: [...parsed.cards, newCard],
+        };
+      }
+
+      await saveDeck.mutateAsync(parsedDeck);
+      onClose();
+    } catch {
+      setStep2Error("Failed to save. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <button
+        type="button"
+        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm cursor-default"
+        onClick={onClose}
+        aria-label="Close dialog"
+      />
+      {/* Modal */}
+      <div
+        className="relative bg-card rounded-2xl p-6 w-full max-w-sm border border-border flex flex-col gap-4 animate-scale-in"
+        style={{ boxShadow: "0 20px 60px 0 oklch(0 0 0 / 0.15)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div
+              className="p-2 rounded-xl shrink-0"
+              style={{ background: "oklch(var(--primary) / 0.1)" }}
+            >
+              <Plus size={18} style={{ color: "oklch(var(--primary))" }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground text-base leading-tight">
+                Add Card
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Step {step} of 2 — {step === 1 ? "Choose deck" : "Enter card"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {step === 1 ? (
+          <>
+            {/* Deck select */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="home-deck-select"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"
+              >
+                Destination Deck
+              </label>
+              <select
+                id="home-deck-select"
+                data-ocid="home_add_card_modal.deck.select"
+                value={selectedDeckId}
+                onChange={(e) => {
+                  setSelectedDeckId(e.target.value);
+                  if (step1Error) setStep1Error(null);
+                }}
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              >
+                <option value="__new__">— Create new deck —</option>
+                {allDecks
+                  .filter((d) => !(d as BuiltinDeck).isBuiltin)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* New deck fields */}
+            {selectedDeckId === "__new__" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="home-new-deck-name"
+                    className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"
+                  >
+                    Deck Name
+                  </label>
+                  <input
+                    id="home-new-deck-name"
+                    type="text"
+                    data-ocid="home_add_card_modal.new_deck_name.input"
+                    value={newDeckName}
+                    onChange={(e) => {
+                      setNewDeckName(e.target.value);
+                      if (step1Error) setStep1Error(null);
+                    }}
+                    placeholder="e.g. Human Physiology"
+                    className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/60"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="home-new-deck-section"
+                    className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"
+                  >
+                    Section
+                  </label>
+                  <select
+                    id="home-new-deck-section"
+                    data-ocid="home_add_card_modal.section.select"
+                    value={newDeckSection}
+                    onChange={(e) =>
+                      setNewDeckSection(e.target.value as Section)
+                    }
+                    className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  >
+                    {SECTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Error */}
+            {step1Error && (
+              <p
+                className="text-sm font-medium"
+                style={{ color: "oklch(var(--destructive))" }}
+              >
+                {step1Error}
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm hover:bg-accent transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-ocid="home_add_card_modal.next.button"
+                onClick={handleNext}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
+                style={{
+                  boxShadow: "0 2px 10px 0 oklch(var(--primary) / 0.25)",
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Front */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="home-card-front"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"
+              >
+                Front / Question
+              </label>
+              <textarea
+                id="home-card-front"
+                data-ocid="home_add_card_modal.front.textarea"
+                value={front}
+                onChange={(e) => {
+                  setFront(e.target.value);
+                  if (step2Error) setStep2Error(null);
+                }}
+                placeholder="Enter the question or prompt…"
+                rows={3}
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground/60 transition-all"
+              />
+            </div>
+
+            {/* Back */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="home-card-back"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"
+              >
+                Back / Answer
+              </label>
+              <textarea
+                id="home-card-back"
+                data-ocid="home_add_card_modal.back.textarea"
+                value={back}
+                onChange={(e) => {
+                  setBack(e.target.value);
+                  if (step2Error) setStep2Error(null);
+                }}
+                placeholder="Enter the answer…"
+                rows={3}
+                className="w-full bg-secondary border border-border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground/60 transition-all"
+              />
+            </div>
+
+            {/* Error */}
+            {step2Error && (
+              <p
+                className="text-sm font-medium"
+                style={{ color: "oklch(var(--destructive))" }}
+              >
+                {step2Error}
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm hover:bg-accent transition-colors"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                data-ocid="home_add_card_modal.submit_button"
+                onClick={handleSubmit}
+                disabled={isSubmitting || saveDeck.isPending}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{
+                  boxShadow: "0 2px 10px 0 oklch(var(--primary) / 0.25)",
+                }}
+              >
+                {isSubmitting || saveDeck.isPending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Plus size={15} />
+                )}
+                {isSubmitting || saveDeck.isPending ? "Adding…" : "Add Card"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main DeckList ────────────────────────────────────────────
 
 export function DeckList({ onOpenDeck }: DeckListProps) {
@@ -654,6 +1036,7 @@ export function DeckList({ onOpenDeck }: DeckListProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [showPasteModal, setShowPasteModal] = useState(false);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [offline, setOffline] = useState(!navigator.onLine);
 
   // Keep offline state in sync with browser connectivity
@@ -768,6 +1151,24 @@ export function DeckList({ onOpenDeck }: DeckListProps) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Add Card button */}
+            <button
+              type="button"
+              data-ocid="home.add_card.open_modal_button"
+              onClick={() => setShowAddCardModal(true)}
+              disabled={offline}
+              title={offline ? "Go online to add cards" : undefined}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: "oklch(var(--primary) / 0.08)",
+                color: "oklch(var(--primary))",
+                border: "1.5px solid oklch(var(--primary) / 0.2)",
+              }}
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">Add Card</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowPasteModal(true)}
@@ -902,6 +1303,15 @@ export function DeckList({ onOpenDeck }: DeckListProps) {
           saveDeck={saveDeck}
           onClose={() => setShowPasteModal(false)}
           onSuccess={() => setShowPasteModal(false)}
+        />
+      )}
+
+      {/* Add Card From Home Modal */}
+      {showAddCardModal && (
+        <AddCardFromHomeModal
+          allDecks={allDecks}
+          saveDeck={saveDeck}
+          onClose={() => setShowAddCardModal(false)}
         />
       )}
     </div>

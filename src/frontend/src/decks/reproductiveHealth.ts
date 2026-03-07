@@ -1023,6 +1023,8 @@ import { endocrineDeck } from "./endocrine";
 import { gravitationDeck } from "./gravitation";
 import { lawsOfMotionDeck } from "./lawsOfMotion";
 import { microbesHumanWelfareDeck } from "./microbesHumanWelfare";
+import { molecularBasisDeck } from "./molecularBasis";
+import { morphologyFloweringPlantsDeck } from "./morphologyFloweringPlants";
 import { plantGrowthDeck } from "./plantGrowth";
 import { shmDeck } from "./shm";
 
@@ -1036,6 +1038,8 @@ export const BUILTIN_DECKS: BuiltinDeck[] = [
   chemicalCoordinationDeck,
   plantGrowthDeck,
   discoveriesKeyConceptsDeck,
+  molecularBasisDeck,
+  morphologyFloweringPlantsDeck,
   lawsOfMotionDeck,
   gravitationDeck,
   shmDeck,
